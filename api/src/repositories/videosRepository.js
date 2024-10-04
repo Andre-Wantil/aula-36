@@ -1,6 +1,6 @@
 const { videos } = require("../mock/dados.json");
 
-class videosService {
+class videosRepository {
   encontrarTodos() {
     return videos;
   }
@@ -31,4 +31,4 @@ class videosService {
   }
 }
 
-module.exports = new videosService();
+module.exports = new videosRepository();

@@ -1,19 +1,21 @@
-const videosService = require("../services/videosService");
+const videosRepository = require("../repositories/videosRepository");
 
 const Video = require("../models/Video");
+const videoService = require("../services/videoService");
 class videosController {
-  index(req, res) {
+  index(req, res, next) {
     try {
-      const videos = videosService.encontrarTodos();
+      const filtros = req.query;
+      
+      const videos = videoService.encontrarComFiltros(filtros);
+
       if (videos.length > 0) {
         res.status(200).json(videos);
       } else {
         res.status(404).json({ mensagem: "Nenhum vídeo encontrado" });
       }
     } catch (erro) {
-      res
-        .status(500)
-        .json({ mensagem: "Erro ao buscar vídeos", detalhes: erro.message });
+      next(erro)
     }
   }
 
@@ -25,7 +27,7 @@ class videosController {
         throw new Error("O ID não foi passado");
       }
 
-      const video = videosService.buscarPeloId(id);
+      const video = videosRepository.buscarPeloId(id);
 
       if (video) {
         res.status(200).json(video);
@@ -41,11 +43,19 @@ class videosController {
 
   store(req, res) {
     try {
-      const { titulo, descricao, image, canalID } = req.body;
+      const imagePath = req.file?.filename;
+      const { titulo, descricao, canalID } = req.body;
 
-      const novoVideo = new Video(titulo, descricao, image, canalID);
+      if (!titulo || !descricao || !canalID) {
+        return res.status(400).json({
+          message: "Seu upload está incorreto",
+          send: `${titulo}, ${descricao}, ${canalID}`
+        })
+      }
 
-      videosService.adicionar(novoVideo);
+      const novoVideo = new Video(titulo, descricao, imagePath, parseInt(canalID));
+
+      videosRepository.adicionar(novoVideo);
       res.status(201).json(novoVideo);
     } catch (erro) {
       res
@@ -62,13 +72,13 @@ class videosController {
         throw new Error("O ID não foi passado");
       }
 
-      const video = videosService.buscarPeloId(id);
+      const video = videosRepository.buscarPeloId(id);
 
       if (!video) {
         return res.status(404).json({ mensagem: "Vídeo não encontrado" });
       }
 
-      videosService.atualizar(id, body);
+      videosRepository.atualizar(id, body);
       res.status(200).json(video);
     } catch (erro) {
       res
@@ -84,9 +94,9 @@ class videosController {
         throw new Error("O ID não foi passado");
       }
 
-      const video = videosService.buscarPeloId(id);
+      const video = videosRepository.buscarPeloId(id);
       if (video) {
-        videosService.excluir(id);
+        videosRepository.excluir(id);
         res.status(200).json({
           mensagem: `Vídeo id:${id} removido com sucesso!`,
           video
